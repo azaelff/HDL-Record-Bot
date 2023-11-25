@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { guildId, pendingRecordsID, priorityRecordsID } = require('../../config.json');
+const { guildId, pendingRecordsID } = require('../../config.json');
 
 const Sequelize = require('sequelize');
 
@@ -57,15 +57,6 @@ module.exports = {
 						.addChoices(
 							{ name: 'Denied', value: 'denied' },
 							{ name: 'All', value: 'all' },
-						))
-				.addStringOption(option =>
-					option.setName('channel')
-						.setDescription('From which channel')
-						.setRequired(true)
-						.addChoices(
-							{ name: 'Normal pending', value: 'pending' },
-							{ name: 'Priority pending', value: 'priority' },
-							{ name: 'Both', value: 'both' },
 						))*/
 	async execute(interaction) {
 
@@ -181,11 +172,9 @@ module.exports = {
 			let nbFound = 0;
 			const guild = await interaction.client.guilds.fetch(guildId);
 			const pendingChannel = await guild.channels.cache.get(pendingRecordsID);
-			const priorityChannel = await guild.channels.cache.get(priorityRecordsID);
 			for (let i = 0; i < pendingRecords.length; i++) {
 				try {
-					if (pendingRecords[i].priority) await priorityChannel.messages.fetch(pendingRecords[i].discordid);
-					else await pendingChannel.messages.fetch(pendingRecords[i].discordid);
+					await pendingChannel.messages.fetch(pendingRecords[i].discordid);
 				} catch (_) {
 					await dbPendingRecords.destroy({ where: { discordid: pendingRecords[i].discordid } });
 					nbFound++;
@@ -193,8 +182,7 @@ module.exports = {
 
 					// Try deleting the other message as well in case only the first one is missing smh
 					try {
-						if (pendingRecords[i].priority) await (await priorityChannel.messages.fetch(pendingRecordsID[i].embedDiscordid)).delete();
-						else await (await pendingChannel.messages.fetch(pendingRecords[i].embedDiscordid)).delete();
+						await (await pendingChannel.messages.fetch(pendingRecords[i].embedDiscordid)).delete();
 					} catch (__) {
 						// Nothing to do
 					}

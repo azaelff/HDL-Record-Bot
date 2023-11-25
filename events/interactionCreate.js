@@ -184,7 +184,6 @@ module.exports = {
 						raw: record.raw,
 						ldm: record.ldm,
 						additionalnotes: record.additionalnotes,
-						priority: record.priority,
 						moderator: interaction.user.id,
 					});
 				} catch (error) {
@@ -299,7 +298,6 @@ module.exports = {
 						raw: record.raw,
 						ldm: record.ldm,
 						additionalnotes: record.additionalnotes,
-						priority: record.priority,
 						discordid: sent.id,
 						denyReason: 'none',
 						moderator: interaction.user.id,

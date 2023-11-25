@@ -1,6 +1,6 @@
 const { Events } = require('discord.js');
 const { dbInfos, staffStats, dbPendingRecords, dbDeniedRecords, dbAcceptedRecords } = require('../index.js');
-const { guildId, pendingRecordsID, priorityRecordsID } = require('../config.json');
+const { guildId, pendingRecordsID } = require('../config.json');
 
 module.exports = {
 	name: Events.ClientReady,
@@ -28,11 +28,9 @@ module.exports = {
 		let nbFound = 0;
 		const guild = await client.guilds.fetch(guildId);
 		const pendingChannel = await guild.channels.cache.get(pendingRecordsID);
-		const priorityChannel = await guild.channels.cache.get(priorityRecordsID);
 		for (let i = 0; i < pendingRecords.length; i++) {
 			try {
-				if (pendingRecords[i].priority) await priorityChannel.messages.fetch(pendingRecords[i].discordid);
-				else await pendingChannel.messages.fetch(pendingRecords[i].discordid);
+				await pendingChannel.messages.fetch(pendingRecords[i].discordid);
 			} catch (_) {
 				await dbPendingRecords.destroy({ where: { discordid: pendingRecords[i].discordid } });
 				nbFound++;
@@ -40,8 +38,7 @@ module.exports = {
 
 				// Try deleting the other message as well in case only the first one is missing smh
 				try {
-					if (pendingRecords[i].priority) await (await priorityChannel.messages.fetch(pendingRecordsID[i].embedDiscordid)).delete();
-					else await (await pendingChannel.messages.fetch(pendingRecords[i].embedDiscordid)).delete();
+					await (await pendingChannel.messages.fetch(pendingRecords[i].embedDiscordid)).delete();
 				} catch (__) {
 					// Nothing to do
 				}

@@ -32,7 +32,6 @@ const dbPendingRecords = sequelize.define('pendingRecords', {
 	embedDiscordid: {
 		type: Sequelize.STRING,
 	},
-	priority: Sequelize.BOOLEAN,
 });
 
 const dbAcceptedRecords = sequelize.define('acceptedRecords', {
@@ -45,7 +44,6 @@ const dbAcceptedRecords = sequelize.define('acceptedRecords', {
 	raw: Sequelize.STRING,
 	ldm: Sequelize.INTEGER,
 	additionalnotes: Sequelize.STRING,
-	priority: Sequelize.BOOLEAN,
 	moderator: Sequelize.STRING,
 });
 
@@ -63,7 +61,6 @@ const dbDeniedRecords = sequelize.define('deniedRecords', {
 		type: Sequelize.STRING,
 		unique: true,
 	},
-	priority: Sequelize.BOOLEAN,
 	denyReason: Sequelize.STRING,
 	moderator: Sequelize.STRING,
 });
