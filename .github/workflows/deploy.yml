@@ -35,4 +35,4 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
-          script: sudo systemctl restart aredl-manager-main
+          script: sudo systemctl restart hdl-manager-main
