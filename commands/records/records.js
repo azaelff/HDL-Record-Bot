@@ -14,68 +14,74 @@ const denyReasons = new Map()
 	.set('group', 'Please only provide one level per submission')
 	.set('run', 'The submission is not a run from 0% to 100%, or does not include the endscreen');
 
-module.exports = {
-	cooldown: 5,
-	data: new SlashCommandBuilder()
-		.setName('record')
-		.setDescription('Record handling')
-		.setDMPermission(false)
-		.addSubcommand(subcommand =>
-			subcommand
-				.setName('submit')
-				.setDescription('Submit a record for the list')
-				.addStringOption(option =>
-					option.setName('username')
-						.setDescription('The name that will show up on records and the leaderboard (KEEP CONSISTENT BETWEEN RECORDS)')
-						.setRequired(true))
-				.addStringOption(option =>
-					option.setName('levelname')
-						.setDescription('Name of the level you\'re submitting for (check to see if it\'s on the list first)')
-						.setRequired(true))
-				.addIntegerOption(option =>
-					option.setName('fps')
-						.setDescription('FPS used to complete the level (360 at most)')
-						.setRequired(true)
-						.setMinValue(0)
-						.setMaxValue(360))
-				.addStringOption(option =>
-					option.setName('device')
-						.setDescription('Device the level was completed on')
-						.setRequired(true)
-						.addChoices(
-							{ name: 'PC', value: 'PC' },
-							{ name: 'Mobile', value: 'Mobile' },
-						))
-				.addStringOption(option =>
-					option.setName('completionlink')
-						.setDescription('Link to the completion')
-						.setRequired(true))
-				.addStringOption(option =>
-					option.setName('raw')
-						.setDescription('Link to your raw footage (Optional, required for top 250 levels)'))
-				.addIntegerOption(option =>
-					option.setName('ldm')
-						.setDescription('ID for the external LDM you used (Optional)'))
-				.addStringOption(option =>
-					option.setName('additionalnotes')
-						.setDescription('Any other info you\'d like to share with us (Optional)')))
-		.addSubcommand(subcommand =>
-			subcommand
-				.setName('status')
-				.setDescription('Check the status of pending records'))
-		.addSubcommand(subcommand =>
-			subcommand
-				.setName('info')
-				.setDescription('Check the status of your submissions')
-				.addStringOption(option =>
-					option.setName('status')
-						.setDescription('Which records you want to check')
-						.setRequired(true)
-						.addChoices(
-							{ name: 'Pending', value: 'pending' },
-							{ name: 'Accepted', value: 'accepted' },
-							{ name: 'Denied', value: 'denied' },
-						))),
+	module.exports = {
+		cooldown: 5,
+		data: new SlashCommandBuilder()
+			.setName('record')
+			.setDescription('Record handling')
+			.setDMPermission(false)
+			.addSubcommand(subcommand =>
+				subcommand
+					.setName('submit')
+					.setDescription('Submit a record for the list')
+					.addStringOption(option =>
+						option.setName('username')
+							.setDescription('The name that will show up on records and the leaderboard (KEEP CONSISTENT BETWEEN RECORDS)')
+							.setMaxLength(1024)
+							.setRequired(true))
+					.addStringOption(option =>
+						option.setName('levelname')
+							.setDescription('Name of the level you\'re submitting for (check to see if it\'s on the list first)')
+							.setMaxLength(1024)
+							.setRequired(true))
+					.addIntegerOption(option =>
+						option.setName('fps')
+							.setDescription('FPS used to complete the level (360 at most)')
+							.setRequired(true)
+							.setMinValue(0)
+							.setMaxValue(360))
+					.addStringOption(option =>
+						option.setName('device')
+							.setDescription('Device the level was completed on')
+							.setRequired(true)
+							.addChoices(
+								{ name: 'PC', value: 'PC' },
+								{ name: 'Mobile', value: 'Mobile' },
+							))
+					.addStringOption(option =>
+						option.setName('completionlink')
+							.setDescription('Link to the completion')
+							.setRequired(true)
+							.setMaxLength(1024))
+					.addStringOption(option =>
+						option.setName('raw')
+							.setDescription('Link to your raw footage (Optional, required for top 250 levels)')
+							.setMaxLength(1024))
+					.addIntegerOption(option =>
+						option.setName('ldm')
+							.setDescription('ID for the external LDM you used (Optional)')
+							.setMaxLength(1024))
+					.addStringOption(option =>
+						option.setName('additionalnotes')
+							.setDescription('Any other info you\'d like to share with us (Optional)')
+							.setMaxLength(1024)))
+			.addSubcommand(subcommand =>
+				subcommand
+					.setName('status')
+					.setDescription('Check the status of pending records'))
+			.addSubcommand(subcommand =>
+				subcommand
+					.setName('info')
+					.setDescription('Check the status of your submissions')
+					.addStringOption(option =>
+						option.setName('status')
+							.setDescription('Which records you want to check')
+							.setRequired(true)
+							.addChoices(
+								{ name: 'Pending', value: 'pending' },
+								{ name: 'Accepted', value: 'accepted' },
+								{ name: 'Denied', value: 'denied' },
+							))),
 	async execute(interaction) {
 		await interaction.deferReply({ ephemeral: true });
 

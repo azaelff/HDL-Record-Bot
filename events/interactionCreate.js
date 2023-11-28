@@ -280,9 +280,13 @@ module.exports = {
 				const row = new ActionRowBuilder()
 					.addComponents(denySelect);
 
-				// Send in moderator dms
-				const sent = await interaction.user.send({ embeds: [denyEmbed], components: [row] });
-
+				// Try send in moderator dms, else in denied record logs
+				try {
+					const sent = await interaction.user.send({ embeds: [denyEmbed], components: [row] });
+				} catch (_) {
+					console.log(`Failed to send in moderator ${interaction.user.id} dms, sending in denied record logs`);
+					const sent = await interaction.client.channels.cache.get(deniedRecordsID).send({ embeds: [denyEmbed], components: [row] });
+				}
 				// Remove record from pending table
 				await dbPendingRecords.destroy({ where: { discordid: record.discordid } });
 
