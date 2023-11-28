@@ -285,7 +285,7 @@ module.exports = {
 					const sent = await interaction.user.send({ embeds: [denyEmbed], components: [row] });
 				} catch (_) {
 					console.log(`Failed to send in moderator ${interaction.user.id} dms, sending in denied record logs`);
-					const sent = await interaction.client.channels.cache.get(deniedRecordsID).send({ embeds: [denyEmbed], components: [row] });
+					const sent = await (await interaction.client.channels.cache.get(deniedRecordsID)).send({ embeds: [denyEmbed], components: [row] });
 				}
 				// Remove record from pending table
 				await dbPendingRecords.destroy({ where: { discordid: record.discordid } });
