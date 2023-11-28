@@ -59,7 +59,7 @@ const denyReasons = new Map()
 							.setMaxLength(1024))
 					.addIntegerOption(option =>
 						option.setName('ldm')
-							.setDescription('ID for the external LDM you used (Optional)')
+							.setDescription('ID for the external LDM you used (Optional)'))
 					.addStringOption(option =>
 						option.setName('additionalnotes')
 							.setDescription('Any other info you\'d like to share with us (Optional)')
