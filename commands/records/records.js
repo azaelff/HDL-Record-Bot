@@ -36,7 +36,7 @@ const denyReasons = new Map()
 							.setRequired(true))
 					.addIntegerOption(option =>
 						option.setName('fps')
-							.setDescription('FPS used to complete the level (360 at most)')
+							.setDescription('FPS used to complete the level (We allowed unlimited FPS on Post Update 2.1 Completions)')
 							.setRequired(true)
 							.setMinValue(0))
 					.addStringOption(option =>
