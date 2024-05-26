@@ -1,5 +1,5 @@
 const { REST, Routes } = require('discord.js');
-const { clientId, guildId, token } = require('./config.json');
+const { clientId, guildId, staffGuildId, enableSeparateStaffServer, token } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -16,11 +16,11 @@ for (const folder of commandFolders) {
 	for (const file of commandFiles) {
 		const filePath = path.join(commandsPath, file);
 		const command = require(filePath);
-		if ('data' in command && 'execute' in command) {
-			commands.push(command.data.toJSON());
+		if ('data' in command && 'execute' in command && 'enabled' in command) {
+			if (command.enabled) commands.push(command.data.toJSON());
+			else console.log(`Ignoring disabled command ${filePath}`);
 		} else {
-			console.log(`data : ${'data' in command} |execute : ${'execute' in command}`);
-			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+			console.log(`[WARNING] The command at ${filePath} is missing a required "data", "execute" or "enabled" property.`);
 		}
 	}
 }
@@ -38,6 +38,12 @@ const rest = new REST().setToken(token);
 			Routes.applicationGuildCommands(clientId, guildId),
 			{ body: commands },
 		);
+		if (enableSeparateStaffServer) {
+			await rest.put(
+				Routes.applicationGuildCommands(clientId, staffGuildId),
+				{ body: commands },
+			);
+		}
 
 		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 	} catch (error) {

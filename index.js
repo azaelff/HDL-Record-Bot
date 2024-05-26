@@ -1,11 +1,17 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { token } = require('./config.json');
+const { githubToken } = require('./config.json');
 const Sequelize = require('sequelize');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const { Octokit } = require('@octokit/rest');
+const cron = require('node-cron');
+const { createDbSchema, createCacheDbSchema } =  require('./others/dbSchema.js');
+
+require('log-timestamp');
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildPresences] });
 
 // Establish DB connection
 const sequelize = new Sequelize({
@@ -14,106 +20,130 @@ const sequelize = new Sequelize({
 	storage: './data/database.sqlite',
 });
 
+const sequelize_cache = new Sequelize({
+	dialect: 'sqlite',
+	logging: false,
+	storage: './data/cache.sqlite',
+});
+
+// Establish Github connection
+const octokit = new Octokit({ auth: githubToken });
+
 // Create tables models
-const dbPendingRecords = sequelize.define('pendingRecords', {
-	username: Sequelize.STRING,
-	submitter: Sequelize.STRING,
-	levelname: Sequelize.STRING,
-	fps: Sequelize.INTEGER,
-	device: Sequelize.STRING,
-	completionlink: Sequelize.STRING,
-	raw: Sequelize.STRING,
-	ldm: Sequelize.INTEGER,
-	additionalnotes: Sequelize.STRING,
-	discordid: {
-		type: Sequelize.STRING,
-		unique: true,
-	},
-	embedDiscordid: {
-		type: Sequelize.STRING,
-	},
-});
+const db = createDbSchema(sequelize);
+const cache = createCacheDbSchema(sequelize_cache);
 
-const dbAcceptedRecords = sequelize.define('acceptedRecords', {
-	username: Sequelize.STRING,
-	submitter: Sequelize.STRING,
-	levelname: Sequelize.STRING,
-	fps: Sequelize.INTEGER,
-	device: Sequelize.STRING,
-	completionlink: Sequelize.STRING,
-	raw: Sequelize.STRING,
-	ldm: Sequelize.INTEGER,
-	additionalnotes: Sequelize.STRING,
-	moderator: Sequelize.STRING,
-});
+module.exports = { db, cache, octokit, client };
 
-const dbDeniedRecords = sequelize.define('deniedRecords', {
-	username: Sequelize.STRING,
-	submitter: Sequelize.STRING,
-	levelname: Sequelize.STRING,
-	fps: Sequelize.INTEGER,
-	device: Sequelize.STRING,
-	completionlink: Sequelize.STRING,
-	raw: Sequelize.STRING,
-	ldm: Sequelize.INTEGER,
-	additionalnotes: Sequelize.STRING,
-	discordid: {
-		type: Sequelize.STRING,
-		unique: true,
-	},
-	denyReason: Sequelize.STRING,
-	moderator: Sequelize.STRING,
-});
+// Update levels cache
+cache.update();
 
-const staffStats = sequelize.define('staffs', {
-	moderator: Sequelize.STRING,
-	nbRecords: Sequelize.INTEGER,
-	nbAccepted: Sequelize.INTEGER,
-	nbDenied: Sequelize.INTEGER,
-});
+// Scheduled cron tasks
+console.log('Loading scheduled tasks');
+const scheduledPath = path.join(__dirname, 'scheduled');
+const scheduledFiles = fs.readdirSync(scheduledPath).filter(file => file.endsWith('.js'));
 
-const dbInfos = sequelize.define('infos', {
-	status: {
-		type: Sequelize.BOOLEAN,
-		defaultValue: false,
-	},
-});
+for (const file of scheduledFiles) {
+	const filePath = path.join(scheduledPath, file);
+	const task = require(filePath);
 
-module.exports = { dbPendingRecords, dbAcceptedRecords, dbDeniedRecords, dbInfos, staffStats };
+	if (task.enabled) {
+		cron.schedule(task.cron, task.execute);
+		console.log(`  Loaded ${task.name}(${task.cron}) from ${filePath}`);
+	} else {
+		console.log(`  Ignored disabled ${task.name}(${task.cron}) from ${filePath}`);
+	}
+}
 
 // Commands
 client.commands = new Collection();
 client.cooldowns = new Collection();
-const foldersPath = path.join(__dirname, 'commands');
-const commandFolders = fs.readdirSync(foldersPath);
 
-for (const folder of commandFolders) {
-	const commandsPath = path.join(foldersPath, folder);
-	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-	for (const file of commandFiles) {
-		const filePath = path.join(commandsPath, file);
-		const command = require(filePath);
-		// Set a new item in the Collection with the key as the command name and the value as the exported module
-		if ('data' in command && 'execute' in command) {
-			client.commands.set(command.data.name, command);
-		} else {
-			console.log(`data : ${'data' in command} |execute : ${'execute' in command}`);
-			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+console.log('Loading commands');
+const parentCommandPath = path.join(__dirname, 'commands');
+
+if (fs.existsSync(parentCommandPath)) {
+	const commandFolders = fs.readdirSync(parentCommandPath);
+	for (const folder of commandFolders) {
+		const commandsPath = path.join(parentCommandPath, folder);
+		const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+		for (const file of commandFiles) {
+			const filePath = path.join(commandsPath, file);
+			const command = require(filePath);
+			// Set a new item in the Collection with the key as the command name and the value as the exported module
+			if ('data' in command && 'execute' in command && 'enabled' in command) {
+				if (command.enabled) {
+					client.commands.set(command.data.name, command);
+					console.log(`  Loaded ${command.data.name} from ${filePath}`);
+				} else {
+					console.log(`  Ignored disabled command ${filePath}`);
+				}
+			} else {
+				console.log(`[WARNING] The command at ${filePath} is missing a required "data", "execute" or "enabled" property.`);
+			}
 		}
 	}
 }
 
-// Events
-const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+// Buttons
+console.log('Loading buttons');
+client.buttons = new Collection();
+const buttonsPath = path.join(__dirname, 'buttons');
 
-for (const file of eventFiles) {
-	const filePath = path.join(eventsPath, file);
-	const event = require(filePath);
-	if (event.once) {
-		client.once(event.name, (...args) => event.execute(...args));
-	} else {
-		client.on(event.name, (...args) => event.execute(...args));
+if (fs.existsSync(buttonsPath)) {
+	const buttonsFiles = fs.readdirSync(buttonsPath).filter(file => file.endsWith('.js'));
+	for (const file of buttonsFiles) {
+		const filePath = path.join(buttonsPath, file);
+		const button = require(filePath);
+		client.buttons.set(button.customId, button);
+		console.log(`  Loaded ${button.customId} from ${filePath}`);
+	}
+}
+
+// Select Menus
+console.log('Loading menus');
+client.menus = new Collection();
+const menusPath = path.join(__dirname, 'menus');
+
+if (fs.existsSync(menusPath)) {
+	const menusFiles = fs.readdirSync(menusPath).filter(file => file.endsWith('.js'));
+	for (const file of menusFiles) {
+		const filePath = path.join(menusPath, file);
+		const menu = require(filePath);
+		client.menus.set(menu.customId, menu);
+		console.log(`  Loaded ${menu.customId} from ${filePath}`);
+	}
+}
+
+// Modals
+console.log('Loading modals');
+client.modals = new Collection();
+const modalsPath = path.join(__dirname, 'modals');
+if (fs.existsSync(modalsPath)) {
+	const modalsFiles = fs.readdirSync(modalsPath).filter(file => file.endsWith('.js'));
+	for (const file of modalsFiles) {
+		const filePath = path.join(modalsPath, file);
+		const modal = require(filePath);
+		client.modals.set(modal.customId, modal);
+		console.log(`  Loaded ${modal.customId} from ${filePath}`);
+	}
+}
+
+// Events
+console.log('Loading events');
+const eventsPath = path.join(__dirname, 'events');
+
+if (fs.existsSync(eventsPath)) {
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+	for (const file of eventFiles) {
+		const filePath = path.join(eventsPath, file);
+		const event = require(filePath);
+		if (event.once) {
+			client.once(event.name, (...args) => event.execute(...args));
+		} else {
+			client.on(event.name, (...args) => event.execute(...args));
+		}
+		console.log(`  Loaded ${event.name} from ${filePath}`);
 	}
 }
 

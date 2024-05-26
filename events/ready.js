@@ -1,6 +1,6 @@
 const { Events } = require('discord.js');
-const { dbInfos, staffStats, dbPendingRecords, dbDeniedRecords, dbAcceptedRecords } = require('../index.js');
-const { guildId, pendingRecordsID } = require('../config.json');
+const { db, cache } = require('../index.js');
+const { guildId, enableSeparateStaffServer, staffGuildId, pendingRecordsID, priorityRecordsID, enablePriorityRole } = require('../config.json');
 
 module.exports = {
 	name: Events.ClientReady,
@@ -8,37 +8,53 @@ module.exports = {
 	async execute(client) {
 
 		console.log('Syncing database data...');
+		for (const table of Object.keys(db)) await db[table].sync({ alter: true});
 
-		await dbPendingRecords.sync({ alter: true });
-		await dbDeniedRecords.sync({ alter: true });
-		await dbAcceptedRecords.sync({ alter: true });
-		await dbInfos.sync({ alter: true });
-		await staffStats.sync({ alter: true });
+		for (const table of Object.keys(cache)) {
+			if (table !== 'update')	await cache[table].sync({ alter: true});
+		}
+		cache.levels.sync({alter: true});
 
-		const isInfosAvailable = await dbInfos.count();
-		if (!isInfosAvailable) {
-			await dbInfos.create({
+		if (!(await db.infos.count({ where: { name: 'records' } }))) {
+			await db.infos.create({
+				status: false,
+				name: 'records',
+			});
+		}
+		if (!(await db.infos.count({ where: { name: 'shifts' } }))) {
+			await db.infos.create({
+				status: false,
+				name: 'shifts',
+			});
+		} else await db.infos.update({status:false}, {where:{name:'shifts'}});
+
+		if (!(await db.infos.count({ where: { name: 'commitdebug' } }))) {
+			await db.infos.create({
 				status: 0,
+				name: 'commitdebug',
 			});
 		}
 
 		console.log('Checking pending record data...');
 
-		const pendingRecords = await dbPendingRecords.findAll();
+		const pendingRecords = await db.pendingRecords.findAll();
 		let nbFound = 0;
-		const guild = await client.guilds.fetch(guildId);
+		const guild = await client.guilds.fetch((enableSeparateStaffServer ? staffGuildId : guildId));
 		const pendingChannel = await guild.channels.cache.get(pendingRecordsID);
+		const priorityChannel = (enablePriorityRole ? await guild.channels.cache.get(priorityRecordsID) : pendingChannel);
 		for (let i = 0; i < pendingRecords.length; i++) {
 			try {
-				await pendingChannel.messages.fetch(pendingRecords[i].discordid);
+				if (enablePriorityRole && pendingRecords[i].priority) await priorityChannel.messages.fetch(pendingRecords[i].discordid);
+				else await pendingChannel.messages.fetch(pendingRecords[i].discordid);
 			} catch (_) {
-				await dbPendingRecords.destroy({ where: { discordid: pendingRecords[i].discordid } });
+				await db.pendingRecords.destroy({ where: { discordid: pendingRecords[i].discordid } });
 				nbFound++;
 				console.log(`Found an errored record : ${pendingRecords[i].discordid}`);
 
 				// Try deleting the other message as well in case only the first one is missing smh
 				try {
-					await (await pendingChannel.messages.fetch(pendingRecords[i].embedDiscordid)).delete();
+					if (enablePriorityRole && pendingRecords[i].priority) await (await priorityChannel.messages.fetch(pendingRecordsID[i].embedDiscordid)).delete();
+					else await (await pendingChannel.messages.fetch(pendingRecords[i].embedDiscordid)).delete();
 				} catch (__) {
 					// Nothing to do
 				}
