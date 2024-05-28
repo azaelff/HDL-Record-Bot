@@ -10,6 +10,7 @@ module.exports = {
 			completionlink: Sequelize.STRING,
 			raw: Sequelize.STRING,
 			ldm: Sequelize.INTEGER,
+			fps: Sequelize.INTEGER,
 			additionalnotes: Sequelize.STRING,
 			discordid: {
 				type: Sequelize.STRING,
@@ -28,6 +29,7 @@ module.exports = {
 			levelname: Sequelize.STRING,
 			device: Sequelize.STRING,
 			completionlink: Sequelize.STRING,
+			fps: Sequelize.INTEGER,
 			raw: Sequelize.STRING,
 			ldm: Sequelize.INTEGER,
 			additionalnotes: Sequelize.STRING,
@@ -40,6 +42,7 @@ module.exports = {
 			submitter: Sequelize.STRING,
 			levelname: Sequelize.STRING,
 			device: Sequelize.STRING,
+			fps: Sequelize.INTEGER,
 			completionlink: Sequelize.STRING,
 			raw: Sequelize.STRING,
 			ldm: Sequelize.INTEGER,
