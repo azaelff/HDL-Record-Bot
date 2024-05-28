@@ -32,6 +32,7 @@ module.exports = {
 				submitter: record.submitter,
 				levelname: record.levelname,
 				device: record.device,
+				fps: record.fps,
 				completionlink: record.completionlink,
 				raw: record.raw,
 				ldm: record.ldm,
@@ -55,6 +56,7 @@ module.exports = {
 				{ name: 'Record denied by', value: `<@${interaction.user.id}>` },
 				{ name: 'Deny Reason', value: `${reason}` },
 				{ name: 'Device', value: `${record.device}`, inline: true },
+				{ name: 'FPS', value: `${record.fps}`, inline: true },
 				{ name: 'LDM', value: `${(record.ldm == 0 ? 'None' : record.ldm)}`, inline: true },
 				{ name: 'Completion link', value: `${record.completionlink}` },
 				{ name: 'Raw link', value: `${record.raw}` },
@@ -72,6 +74,7 @@ module.exports = {
 				{ name: 'Record denied by', value: `<@${interaction.user.id}>` },
 				{ name: 'Deny Reason', value: `${reason}` },
 				{ name: 'Device', value: `${record.device}`, inline: true },
+				{ name: 'FPS', value: `${record.fps}`, inline: true },
 				{ name: 'LDM', value: `${(record.ldm == 0 ? 'None' : record.ldm)}`, inline: true },
 				{ name: 'Completion link', value: `${record.completionlink}` },
 			)
