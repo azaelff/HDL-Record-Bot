@@ -80,7 +80,7 @@ module.exports = {
 
 			let levels = await cache.levels.findAll({
 				where: { 
-					name: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('name')), 'LIKE', focusedValue.toLowerCase() + '%')
+					name: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('name')), 'LIKE', '%' + focusedValue.toLowerCase() + '%')
 				}});
 			if (levels.length > 25) levels = levels.slice(0, 25);
 			await interaction.respond(
