@@ -32,6 +32,11 @@ module.exports = {
 							{ name: 'PC', value: 'PC' },
 							{ name: 'Mobile', value: 'Mobile' },
 						))
+				.addIntegerOption(option =>
+						option.setName('fps')
+							.setDescription('FPS used to complete the level (We allowed unlimited FPS on Post Update 2.1 Completions)')
+							.setRequired(true)
+							.setMinValue(0))
 				.addStringOption(option =>
 					option.setName('completionlink')
 						.setDescription('Link to the completion')
@@ -138,6 +143,7 @@ module.exports = {
 				.addFields(
 					{ name: 'Record submitted by', value: `<@${interaction.user.id}>` },
 					{ name: 'Record holder', value: `${interaction.options.getString('username')}` },
+					{ name: 'FPS', value: `${interaction.options.getInteger('fps')}`, inline: true },
 					{ name: 'Device', value: `${interaction.options.getString('device')}`, inline: true },
 					{ name: 'LDM', value: `${(interaction.options.getInteger('ldm') == null ? 'None' : interaction.options.getInteger('ldm'))}`, inline: true },
 					{ name: 'Completion link', value: `${interaction.options.getString('completionlink')}` },
@@ -159,6 +165,7 @@ module.exports = {
 					levelname: interaction.options.getString('levelname'),
 					device: interaction.options.getString('device'),
 					completionlink: interaction.options.getString('completionlink'),
+					fps: interaction.options.getInteger('fps'),
 					raw: 'None',
 					ldm: 0,
 					additionalnotes: 'None',
