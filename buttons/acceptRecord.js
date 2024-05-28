@@ -27,7 +27,7 @@ module.exports = {
 		if (!shiftsLock || shiftsLock.status) return await interaction.editReply(':x: The bot is currently assigning shifts, please wait a few minutes before checking records.');
 
 		// Create embed to send with github code
-		const githubCode = `{\n\t\t"user": "${record.username}",\n\t\t"link": "${record.completionlink}",\n\t\t"percent": 100,\n\t\t"hz": 360` + (record.device == 'Mobile' ? ',\n\t\t"mobile": true\n}\n' : '\n}');
+		const githubCode = `{\n\t\t"user": "${record.username}",\n\t\t"link": "${record.completionlink}",\n\t\t"percent": 100,\n\t\t"hz": ${record.fps}` + (record.device == 'Mobile' ? ',\n\t\t"mobile": true\n}\n' : '\n}');
 		const { cache } = require('../index.js');
 		const level = await cache.levels.findOne({ where: {name: record.levelname}});
 		try {
@@ -81,6 +81,7 @@ module.exports = {
 				{ name: 'Record submitted by', value: `<@${record.submitter}>`, inline: true },
 				{ name: 'Record holder', value: `${record.username}`, inline: true },
 				{ name: 'Record accepted by', value: `${interaction.user}` },
+				{ name: 'FPS', value: `${record.fps}`, inline: true },
 				{ name: 'Device', value: `${record.device}`, inline: true },
 				{ name: 'LDM', value: `${(record.ldm == 0 ? 'None' : record.ldm)}`, inline: true },
 				{ name: 'Completion link', value: `${record.completionlink}` },
@@ -97,6 +98,7 @@ module.exports = {
 			.setDescription('Accepted\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800')
 			.addFields(
 				{ name: 'Record holder', value: `${record.username}`, inline: true },
+				{ name: 'FPS', value: `${record.fps}`, inline: true },
 				{ name: 'Device', value: `${record.device}`, inline: true },
 			);
 
@@ -122,7 +124,7 @@ module.exports = {
 					user: record.username,
 					link: record.completionlink,
 					percent: 100,
-					hz: 360,
+					hz: record.fps,
 					...(record.device === 'Mobile' && { mobile: true }),
 				}, null, '\t');
 
@@ -159,6 +161,7 @@ module.exports = {
 				submitter: record.submitter,
 				levelname: record.levelname,
 				device: record.device,
+				fps: record.fps,
 				completionlink: record.completionlink,
 				raw: record.raw,
 				ldm: record.ldm,
