@@ -75,7 +75,7 @@ module.exports = {
 			if (data.permissions.push) {
 				console.log(`Found push access to ${githubOwner}/${githubRepo}`);
 			} else {
-				console.log(`Couldn't find push access to ${owner}/${repo}`);
+				console.log(`Couldn't find push access to ${githubOwner}/${githubRepo}`);
 			}
 		} catch (error) {
 			console.error(`Error fetching repository information: ${error}`);
