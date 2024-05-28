@@ -63,7 +63,7 @@ module.exports = {
 		}
 		console.log(`Found a total of ${nbFound} errored records.`);
 
-		console.log('Checking github token permissions...');
+		console.log(`Checking github token permissions for ${githubOwner}/${githubRepo}...`);
 
 		const { octokit } = require('../index.js');
 		try {
@@ -73,7 +73,7 @@ module.exports = {
 			});
 	
 			if (data.permissions.push) {
-				console.log(`Found push access to ${owner}/${repo}`);
+				console.log(`Found push access to ${githubOwner}/${githubRepo}`);
 			} else {
 				console.log(`Couldn't find push access to ${owner}/${repo}`);
 			}
