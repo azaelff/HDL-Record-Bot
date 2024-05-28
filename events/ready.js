@@ -67,9 +67,9 @@ module.exports = {
 
 		const { octokit } = require('../index.js');
 		try {
-			const { data } = await octokit.repos.get({
-				githubOwner,
-				githubRepo
+			const { data } = await octokit.rest.repos.get({
+				owner: githubOwner,
+				repo: githubRepo
 			});
 	
 			if (data.permissions.push) {
@@ -78,8 +78,9 @@ module.exports = {
 				console.log(`Couldn't find push access to ${githubOwner}/${githubRepo}`);
 			}
 		} catch (error) {
-			console.error(`Error fetching repository information: ${error}`);
+			console.log(`Error fetching repository information: ${error}`);
 		}
+		
 		console.log(`Ready! Logged in as ${client.user.tag}`);
 		return 1;
 	},
