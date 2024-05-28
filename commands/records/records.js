@@ -44,7 +44,7 @@ module.exports = {
 						.setRequired(true))
 				.addStringOption(option =>
 					option.setName('raw')
-						.setDescription('Link to your raw footage (Optional, required for top 250 levels)')
+						.setDescription('Link to your raw footage (Optional)')
 						.setMaxLength(1024))
 				.addIntegerOption(option =>
 					option.setName('ldm')
