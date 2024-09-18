@@ -1,7 +1,7 @@
 {
-  "name": "aredl-bot",
+  "name": "hdl-bot",
   "version": "1.7.0",
-  "description": "Discord bot for managing the All Rated Extreme Demons List",
+  "description": "Discord bot for managing the HDL",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -62,6 +62,21 @@ module.exports = {
 			githubCode: Sequelize.STRING,
 			discordid: Sequelize.STRING,
 		});
+
+		db.levelsToMove = sequelize.define('levelsToMove', {
+			filename: Sequelize.STRING,
+			position: Sequelize.INTEGER,
+			discordid: Sequelize.STRING,
+		});
+
+		db.changelog = sequelize.define('changelog', {
+			levelname: Sequelize.STRING,
+			old_position: Sequelize.INTEGER,
+			new_position: Sequelize.INTEGER,
+			level_above: Sequelize.STRING,
+			level_below: Sequelize.STRING,
+			action: Sequelize.STRING,
+		});
 		
 		db.recordsToCommit = sequelize.define('recordsToCommit', {
 			filename: Sequelize.STRING,
@@ -129,14 +144,20 @@ module.exports = {
 	
 	createCacheDbSchema(sequelize_cache) {
 		const cache = {};
-		const { updateCache } = require('../utils.js');
+		const { updateCachedLevels, updateCachedUsers } = require('../utils.js');
 		cache.levels = sequelize_cache.define('levels', {
 			name: Sequelize.STRING,
 			position: Sequelize.INTEGER,
 			filename: Sequelize.STRING,
 		});
 
-		cache.update = async () => await updateCache();
+		cache.users = sequelize_cache.define('users', {
+			name: Sequelize.STRING,
+			user_id: Sequelize.BIGINT,
+		});
+
+		cache.updateLevels = async () => await updateCachedLevels();
+		cache.updateUsers = async () => await updateCachedUsers();
 		return cache;
 	}
 };

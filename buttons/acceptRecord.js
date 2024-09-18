@@ -26,14 +26,19 @@ module.exports = {
 		const shiftsLock = await db.infos.findOne({ where: { name: 'shifts' } });
 		if (!shiftsLock || shiftsLock.status) return await interaction.editReply(':x: The bot is currently assigning shifts, please wait a few minutes before checking records.');
 
-		// Create embed to send with github code
-		const githubCode = `{\n\t\t"user": "${record.username}",\n\t\t"link": "${record.completionlink}",\n\t\t"percent": 100,\n\t\t"hz": ${record.fps}` + (record.device == 'Mobile' ? ',\n\t\t"mobile": true\n}\n' : '\n}');
 		const { cache } = require('../index.js');
+
+		// Get cached user
+		const user = await cache.users.findOne({ where: { name: record.username } });
+		if (!user) return await interaction.editReply(':x: Couldn\'t find the user this record was submitted for (their name might have changed since they submitted it)');
+		// Create embed to send with github code
+		const githubCode = `{\n\t\t"user": ${user.user_id},\n\t\t"link": "${record.completionlink}",\n\t\t"percent": 100,\n\t\t"hz": ${record.fps}` + (record.device == 'Mobile' ? ',\n\t\t"mobile": true\n}\n' : '\n}');
+		
 		const level = await cache.levels.findOne({ where: {name: record.levelname}});
 		try {
 			await db.recordsToCommit.create({
 				filename: level.filename,
-				user: record.username,
+				user: user.user_id,
 				githubCode: githubCode,
 				discordid: '',
 			});
@@ -108,7 +113,7 @@ module.exports = {
 
 		staffGuild.channels.cache.get(acceptedRecordsID).send({ content: `${interaction.user}`, embeds: [acceptEmbed], components: [row] });
 		staffGuild.channels.cache.get(archiveRecordsID).send({ embeds: [archiveEmbed] });
-		guild.channels.cache.get(recordsID).send({ embeds: [publicEmbed] });
+		guild.channels.cache.get(recordsID).send({ content : `<@${record.submitter}>`, embeds: [publicEmbed] });
 		guild.channels.cache.get(recordsID).send({ content : `${record.completionlink}` });
 
 		// Check if we need to send in dms as well

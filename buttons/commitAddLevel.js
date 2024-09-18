@@ -4,23 +4,18 @@ module.exports = {
 	customId: 'commitAddLevel',
 	ephemeral: true,
 	async execute(interaction) {
-		const { octokit, db } = require('../index.js');
-
-		const lock = await db.messageLocks.findOne({ where: { discordid: interaction.message.id } });
-		if (!lock) {
-			await db.messageLocks.create({
-				discordid: interaction.message.id,
-				locked: true,
-				userdiscordid: interaction.user.id,
-			});
-		} else {
-			return await interaction.editReply(`:x: This interaction is being used by <@${lock.userdiscordid}>`);
-		}
+		const { octokit, db, cache } = require('../index.js');
+		const { enableChangelogMessage } = require('../config.json');
 
 		// Check for level info corresponding to the message id
 		const level = await db.levelsToPlace.findOne({ where: { discordid: interaction.message.id } });
+		if (!level) {
+			await interaction.editReply(':x: This action is no longer available');
+			return await interaction.message.delete();
+		}
 
 		let list_response;
+		let changelog_response;
 		try {
 			list_response = await octokit.rest.repos.getContent({
 				owner: githubOwner,
@@ -33,14 +28,36 @@ module.exports = {
 			return await interaction.editReply(':x: Something went wrong while fetching data from github, please try again later');
 		}
 
-		const jsonList = JSON.parse(Buffer.from(list_response.data.content, 'base64').toString('utf-8'));
-		const nbLevels = jsonList.length;
+		try {
+			changelog_response = await octokit.rest.repos.getContent({
+				owner: githubOwner,
+				repo: githubRepo,
+				path: githubDataPath + '/_changelog.json',
+				branch: githubBranch,
+			});
+		} catch (_) {
+			console.log('No changelog file found, creating a new one');
+		}
 
-		if (level.position < 1 || level.position > nbLevels + 1) {
+		const list = JSON.parse(Buffer.from(list_response.data.content, 'base64').toString('utf-8'));
+
+		const changelogList = changelog_response ? JSON.parse(Buffer.from(changelog_response.data.content, 'base64').toString('utf-8')) : [];
+
+		if (level.position < 1 || level.position > list.length + 1) {
 			return await interaction.editReply(':x: The given position is incorrect');
 		}
 
-		jsonList.splice(level.position - 1, 0, level.filename);
+		list.splice(level.position - 1, 0, level.filename);
+		
+		changelogList.push({
+			"date": Math.floor(new Date().getTime() / 1000),
+			"action": "placed",
+			"name": level.filename,
+			"to_rank": level.position,
+			"from_rank": null,
+			"above": list[level.position] || null,
+			"below": list[level.position - 2] || null,
+		});
 
 		// Check if file already exists
 		try {
@@ -50,7 +67,6 @@ module.exports = {
 				path: githubDataPath + `/${level.filename}.json`,
 				branch: githubBranch,
 			});
-			await interaction.message.delete();
 			return await interaction.editReply(':x: The file for this level already exists');
 
 		} catch (_) {
@@ -60,12 +76,16 @@ module.exports = {
 			const changes = [
 				{
 					path: githubDataPath + '/_list.json',
-					content: JSON.stringify(jsonList, null, '\t'),
+					content: JSON.stringify(list, null, '\t'),
 				},
 				{
 					path: githubDataPath + `/${level.filename}.json`,
 					content: level.githubCode,
 				},
+				{
+					path: githubDataPath + '/_changelog.json',
+					content: JSON.stringify(changelogList, null, '\t'),
+				}
 			];
 
 			let commitSha;
@@ -144,11 +164,31 @@ module.exports = {
 			}
 
 			try {
+				const above = list[level.position] ? await cache.levels.findOne({ where: { filename: list[level.position] } }) : null;
+				const below = list[level.position - 2] ? await cache.levels.findOne({ where: { filename: list[level.position - 2] } }) : null;
+
+				if (enableChangelogMessage) {
+					await db.changelog.create({
+						levelname: JSON.parse(level.githubCode).name,
+						old_position: null,
+						new_position: level.position,
+						level_above: above?.name || null,
+						level_below: below?.name || null,
+						action: 'placed',
+					});
+				}
+			} catch (changelogErr) {
+				console.log(`An error occured while creating a changelog entry:\n${changelogErr}`);
+				return await interaction.editReply(`:white_check_mark: Successfully created file: **${level.filename}.json** (${newCommit.data.html_url}), but an error occured while creating a changelog entry`);
+			}
+
+			console.log(`${interaction.user.tag} (${interaction.user.id}) placed ${level.filename} at ${level.position}`);
+			try {
 				console.log(`Successfully created commit on ${githubBranch}: ${newCommit.data.sha}`);
 				db.levelsToPlace.destroy({ where: { discordid: level.discordid } });
-				await interaction.message.delete();
+				cache.levels.create({ name: JSON.parse(level.githubCode).name, filename: level.filename, position: level.position });
 			} catch (cleanupErr) {
-				console.log(`Successfully created commit on ${githubBranch}: ${newCommit.data.sha}, but an error occured while cleanin up:\n${cleanupErr}`);
+				console.log(`Successfully created commit on ${githubBranch}: ${newCommit.data.sha}, but an error occured while cleaning up:\n${cleanupErr}`);
 			}
 
 			return await interaction.editReply(`:white_check_mark: Successfully created file: **${level.filename}.json** (${newCommit.data.html_url})`);
