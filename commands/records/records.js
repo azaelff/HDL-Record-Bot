@@ -101,7 +101,7 @@ module.exports = {
 					name: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('name')), 'LIKE', '%' + focused.value.toLowerCase() + '%')
 				}});
 			await interaction.respond(
-				users.slice(0,25).map(user => ({ name:user.name.slice(0, 100), value: user.user_id })),
+				users.slice(0,25).map(user => ({ name:user.name.slice(0, 100), value: String(user.user_id) })),
 			);
 		}
 	},
