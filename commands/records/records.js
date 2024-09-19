@@ -101,7 +101,7 @@ module.exports = {
 					name: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('name')), 'LIKE', '%' + focused.value.toLowerCase() + '%')
 				}});
 			await interaction.respond(
-				users.slice(0,25).map(user => ({ name:user.name.slice(0,100), value: user.name })),
+				users.slice(0,25).map(user => ({ name:user.name.slice(0, 100), value: user.user_id })),
 			);
 		}
 	},
@@ -136,8 +136,12 @@ module.exports = {
 			const { cache } = require('../../index.js');
 			if (!(await cache.levels.findOne({where: {name: [interaction.options.getString('levelname')]}}))) return await interaction.editReply(':x: Couldn\'t submit the record: the given level name is not on the list (please be sure to select one of the available options)');
 
-			// Check given username
-			if (!(await cache.users.findOne({where: {name: [interaction.options.getString('username')]}}))) return await interaction.editReply(':x: Couldn\'t submit the record: this user does not exist. If it\'s your first time submitting a record, use /record createuser to create a new one. Otherwise, please be sure to select your username from the available options');
+			// Check given user id
+			const username = interaction.options.getString('username');
+			if (isNaN(username)) return await interaction.editReply(':x: Couldn\'t submit the record: this user does not exist. If it\'s your first time submitting a record, use /record createuser to create a new one. Otherwise, please be sure to select your username from the available options');
+			
+			const user = await cache.users.findOne({where: {user_id: [Number(username)]}});
+			if (!user) return await interaction.editReply(':x: Couldn\'t submit the record: this user does not exist. If it\'s your first time submitting a record, use /record createuser to create a new one. Otherwise, please be sure to select your username from the available options');
 			
 			// Create accept/deny buttons
 			const accept = new ButtonBuilder()
@@ -162,7 +166,7 @@ module.exports = {
 				.setDescription('Unassigned')
 				.addFields(
 					{ name: 'Record submitted by', value: `<@${interaction.user.id}>` },
-					{ name: 'Record holder', value: `${interaction.options.getString('username')}` },
+					{ name: 'Record holder', value: `${user.name}` },
 					{ name: 'FPS', value: `${interaction.options.getInteger('fps')}`, inline: true },
 					{ name: 'Device', value: `${interaction.options.getString('device')}`, inline: true },
 					{ name: 'LDM', value: `${(interaction.options.getInteger('ldm') == null ? 'None' : interaction.options.getInteger('ldm'))}`, inline: true },
@@ -180,7 +184,7 @@ module.exports = {
 			// Add record to sqlite db
 			try {
 				await db.pendingRecords.create({
-					username: interaction.options.getString('username'),
+					username: user.name,
 					submitter: interaction.user.id,
 					levelname: interaction.options.getString('levelname'),
 					device: interaction.options.getString('device'),
@@ -209,7 +213,7 @@ module.exports = {
 			if (!(await db.dailyStats.findOne({ where: { date: Date.now() } }))) db.dailyStats.create({ date: Date.now(), nbRecordsSubmitted: 1, nbRecordsPending: await db.pendingRecords.count() });
 			else await db.dailyStats.update({ nbRecordsSubmitted: (await db.dailyStats.findOne({ where: { date: Date.now() } })).nbRecordsSubmitted + 1 }, { where: { date: Date.now() } });
 
-			console.log(`${interaction.user.tag} (${interaction.user.id}) submitted ${interaction.options.getString('levelname')} for ${interaction.options.getString('username')}`);
+			console.log(`${interaction.user.tag} (${interaction.user.id}) submitted ${interaction.options.getString('levelname')} for ${user.name} (${user.user_id})`);
 			// Reply
 			await interaction.editReply((enablePriorityRole && interaction.member.roles.cache.has(priorityRoleID) ? `:white_check_mark: The priority record for ${interaction.options.getString('levelname')} has been submitted successfully` : `:white_check_mark: The record for ${interaction.options.getString('levelname')} has been submitted successfully`));
 
