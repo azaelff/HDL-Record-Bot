@@ -93,13 +93,13 @@ module.exports = {
 				.findAll({where: {}})
 			).filter(user => user.name.toLowerCase().includes(focused.toLowerCase()))
 				.slice(0,25)
-				.map(user => ({ name: user.name, value: user.user_id }))
+				.map(user => ({ name: user.name.slice(0, 100), value: user.user_id }))
 			);
 		else return await interaction.respond(
 			(await cache.levels.findAll({where: {}})
 			).filter(level => level.name.toLowerCase().includes(focused.toLowerCase()))
 				.slice(0,25)
-				.map(level => ({ name: level.name, value: level.filename }))
+				.map(level => ({ name: level.name.slice(0, 100), value: level.filename }))
 			);
 	},
 	async execute(interaction) {
