@@ -14,6 +14,14 @@ module.exports = {
 				.setName('submit')
 				.setDescription('Submit a record for the list')
 				.addStringOption(option =>
+					option.setName('device')
+						.setDescription('Device the level was completed on')
+						.setRequired(true)
+						.addChoices(
+							{ name: 'PC', value: 'PC' },
+							{ name: 'Mobile', value: 'Mobile' },
+						))
+				.addStringOption(option =>
 					option.setName('username')
 						.setDescription('The username you\'re submitting for (Be sure to select one of the available options.)')
 						.setMaxLength(1024)
@@ -25,14 +33,6 @@ module.exports = {
 						.setMaxLength(1024)
 						.setRequired(true)
 						.setAutocomplete(true))
-				.addStringOption(option =>
-					option.setName('device')
-						.setDescription('Device the level was completed on')
-						.setRequired(true)
-						.addChoices(
-							{ name: 'PC', value: 'PC' },
-							{ name: 'Mobile', value: 'Mobile' },
-						))
 				.addIntegerOption(option =>
 						option.setName('fps')
 							.setDescription('FPS used to complete the level (We allowed unlimited FPS on Post Update 2.1 Completions)')
